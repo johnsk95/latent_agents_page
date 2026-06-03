@@ -13,7 +13,7 @@ resources:
 description: academic projectpage template that supports markdown and KaTeX
 
 image: https://denkiwakame.github.io/academic-project-template/teaser.jpg
-url: https://denkiwakame.github.io/academic-project-template
+url: https://johnsk95.github.io/latent-agents
 speakerdeck: # speakerdeck slide ID
 authors:
   - name: Wakame Denki*
