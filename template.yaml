@@ -1,8 +1,8 @@
 theme: default # default || classic || dark
 organization: Pixel Genius Labs
 twitter: '@denkivvakame'
-title: Academic Project Page Template
-journal: "AAAA'24"
+title: Latent Agents: A Post-Training Procedure for Internalized Multi-Agent Debate
+journal: "ACL'26"
 resources:
   paper: # https://openreview.net/
   arxiv: https://arxiv.org
@@ -13,12 +13,12 @@ resources:
 description: academic projectpage template that supports markdown and KaTeX
 
 image: https://denkiwakame.github.io/academic-project-template/teaser.jpg
-url: https://johnsk95.github.io/latent-agents
+url: https://johnsk95.github.io/latent_agents_page
 speakerdeck: # speakerdeck slide ID
 authors:
   - name: Wakame Denki*
     affiliation: [1, 2]
-    url: http://denkiwakame.github.io/
+    url: http://johnsk95.github.io/
     position: intern
   - name: Jane Doe
     affiliation: [1]
