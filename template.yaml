@@ -4,7 +4,7 @@ twitter: '@johnsk95'
 title: 'Latent Agents: A Post-Training Procedure for Internalized Multi-Agent Debate'
 journal: "ACL'26"
 resources:
-  paper: _ACL2026__Latent_Agents_final_v2.pdf
+  paper: https://arxiv.org/abs/2604.24881
   arxiv: https://arxiv.org/abs/2604.24881
   code: https://github.com/johnsk95/latent_agents
   video: https://youtu.be/sC7tDhbW5yw
@@ -151,52 +151,6 @@ body:
         </div>
       </div>
 
-  - title: Implementation
-    text: |
-      ### Getting Started
-
-      ```python
-      # Install the latent_agents package
-      pip install latent-agents
-
-      # Load pre-trained steering vectors
-      from latent_agents import LatentAgents
-
-      model = LatentAgents.from_pretrained("llama-3.1-70b")
-      model.load_steering_vectors("debate-gsmk8")
-
-      # Use for inference
-      response = model.generate(
-          prompt="Solve: If a train travels 120 miles...",
-          use_latent_agents=True,
-          steering_strength=0.8
-      )
-      ```
-
-      ### Training Your Own Steering Vectors
-
-      ```python
-      # Extract debate dynamics from smaller models
-      from latent_agents import extract_debate_vectors
-
-      vectors = extract_debate_vectors(
-          model_a="llama-3.1-8b",
-          model_b="llama-3.1-8b",
-          dataset="gsm8k",
-          num_debates=1000
-      )
-
-      # Apply to larger models
-      target_model.apply_steering_vectors(vectors)
-      ```
-
-      ### Available Pre-trained Vectors
-
-      We provide steering vectors for various tasks:
-      - Mathematical reasoning (GSM8K, MATH)
-      - Code generation (HumanEval, MBPP)
-      - Commonsense reasoning (HellaSwag, WinoGrande)
-      - General instruction following
   - title: Citation
     text: |
       If you find our work helpful, please cite:
@@ -209,7 +163,3 @@ body:
         year = {2026},
       }
       ```
-
-      ### Acknowledgments
-
-      We thank the Llama team at Meta for open-sourcing their models, and the broader research community for valuable discussions and feedback.
