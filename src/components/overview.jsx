@@ -18,6 +18,14 @@ export default class Overview extends React.Component {
           alt=""
         />
         <h2 className="uk-text-bold uk-heading-line uk-text-center">
+          <span>TL;DR</span>
+        </h2>
+        <div
+          dangerouslySetInnerHTML={{
+            __html: marked.parse(this.props.tldr),
+          }}
+        />
+        <h2 className="uk-text-bold uk-margin-top uk-heading-line uk-text-center">
           <span>Abstract</span>
         </h2>
         <div

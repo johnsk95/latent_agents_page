@@ -40,128 +40,105 @@ bibtex: >
 teaser: teaser_horizontal.png
 
 tldr: |
-  We introduce **Latent Agents**, a post-training method that enables LLMs to internally simulate multi-agent debates through lightweight steering vectors. By learning debate dynamics from smaller models and applying them as activation steering, we achieve significant performance improvements on reasoning tasks while maintaining computational efficiency—demonstrating that complex multi-agent behaviors can be internalized within a single model.
+  We introduce **IMAD (Internalized Multi-Agent Debate)**, a two-stage fine-tuning pipeline that distills multi-agent debate into a single model, matching or exceeding explicit debate while using up to 93% fewer tokens. We further show that internalization creates interpretable, controllable agent-specific subspaces in activation space, which can even be steered to suppress malicious agents.
 abstract: |
-  Multi-agent debate (MAD) has emerged as a powerful approach for improving reasoning in large language models (LLMs), where multiple agents engage in structured discussions to solve complex problems. However, MAD requires generating multiple responses for each inference step, significantly increasing computational costs. In this work, we introduce **Latent Agents**, a post-training procedure that internalizes MAD within a single model. By extracting steering vectors that encode the debating dynamics between smaller models and applying these vectors to larger models, we enable LLMs to implicitly simulate multi-agent reasoning patterns without the need for explicit multiple generations.
-
-  Our experiments across multiple reasoning benchmarks show that Latent Agents achieves comparable or superior performance to traditional MAD while reducing inference costs by 2-4x. We further demonstrate that the learned steering vectors capture meaningful debate strategies, including perspective-taking, critical evaluation, and consensus building behaviors. Our analysis reveals that these behaviors can be localized to specific model layers and that the steering vectors generalize across different model families and scales. This work suggests that complex multi-agent behaviors can be efficiently encoded as lightweight activation patterns, opening new directions for enhancing LLM reasoning capabilities without architectural changes.
+  Multi-agent debate has been shown to improve reasoning in large language models (LLMs). However, it is compute-intensive, requiring generation of long transcripts before answering questions. To address this inefficiency, we develop a framework that distills multi-agent debate into a single LLM through a two-stage fine-tuning pipeline combining debate structure learning with internalization via dynamic reward scheduling and length clipping. Across multiple models and benchmarks, our internalized models match or exceed explicit multi-agent debate performance using up to 93% fewer tokens. We then investigate the mechanistic basis of this capability through activation steering, finding that internalization creates agent-specific subspaces: interpretable directions in activation space corresponding to different agent perspectives. We further demonstrate a practical application: by instilling malicious agents into the LLM through internalized debate, then applying negative steering to suppress them, we show that distillation makes harmful behaviors easier to localize and control with smaller reductions in general performance compared to steering base models. Our findings offer a new perspective for understanding multi-agent capabilities in distilled models and provide practical guidelines for controlling internalized reasoning behaviors.
 
 body:
-  - title: Overview
+  - title: 'IMAD: Internalized Debate'
     text: |
-      Multi-agent debate (MAD) has shown remarkable success in improving LLM reasoning, but at a significant computational cost. Our work introduces a novel approach: **internalizing debate dynamics within a single model** through lightweight steering vectors.
-
-      <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-        <div>
-          <img src="imad1_cropped.png">
-          <span class="uk-text-meta">Traditional MAD vs. Latent Agents approach</span>
-        </div>
-        <div>
-          <img src="imad2.png">
-          <span class="uk-text-meta">Extracting and applying steering vectors</span>
-        </div>
-      </div>
-
-  - title: Method
-    text: |
-      ### 1. Extract Debate Dynamics from Smaller Models
-      We begin by running multi-agent debates between smaller models (e.g., Llama-3.1-8B) and capturing their activation patterns during debate:
+      IMAD distills the full multi-agent debate process into a single model through a two-stage fine-tuning pipeline. We first collect debate traces using the standard multi-agent debate protocol (3 agents over 2 rounds) on arithmetic problems, tagging each transcript with structure markers for agents, rounds, and consensus.
 
       <div class="uk-text-center">
-        <img src="imad2_setup_subspace.png" width="80%">
-        <span class="uk-text-meta">Extracting activation differences between debating agents</span>
+        <img src="imad1_cropped.png">
+        <span class="uk-text-meta">The IMAD pipeline: collect debate traces, learn the debate structure with SFT, then internalize it with RL.</span>
       </div>
 
-      ### 2. Learn Steering Vectors
-      We compute steering vectors that encode the debate dynamics:
-      $$\mathbf{v}_{\text{steer}} = \frac{1}{N} \sum_{i=1}^{N} (\mathbf{a}_{\text{debate}}^{(i)} - \mathbf{a}_{\text{base}}^{(i)})$$
+      ### Stage 1: Debate structure learning (SFT)
+      We supervise-fine-tune the base model on the full debate traces, not just the final answers, so it learns to reproduce the multi-round, multi-agent debate format on its own.
 
-      ### 3. Apply to Larger Models
-      These lightweight vectors (< 1MB) can be applied to larger models during inference:
-      $$\mathbf{h}'_l = \mathbf{h}_l + \alpha \cdot \mathbf{v}_{\text{steer}}^{(l)}$$
+      ### Stage 2: Debate internalization (RL)
+      We then apply GRPO with a dynamic reward that gradually moves the model from explicit debate to implicit reasoning. A formatting reward for emitting the debate tags is decayed toward zero, while a correctness reward with length clipping shrinks the allowed output (2000 down to 500 tokens) so the correct answer must appear earlier and earlier. As verbalizing the debate becomes incompatible with the shrinking length budget, the model learns to run the debate internally and emit only the final answer.
 
-      where $\mathbf{h}_l$ is the hidden state at layer $l$ and $\alpha$ controls the steering strength.
   - title: Results
     text: |
-      ### Performance Improvements
-      Latent Agents achieves significant improvements across multiple reasoning benchmarks:
+      We evaluate IMAD on GSM8K, MMLU-Pro, and BigBench-Hard across three open-weight base models. IMAD matches or exceeds explicit debate while using only a small fraction of its tokens (6 to 21%, a 5 to 16x efficiency gain), and it generalizes to these benchmarks despite being trained only on arithmetic. Use the arrows to switch between base models. All numbers are mean accuracy and average token consumption (input plus output) per question across three runs.
+    tables:
+      - model: LLaMA-3.1 8B Instruct
+        rows:
+          - { method: Single, acc: [79.93, 61.10, 56.37], tok: [547, 638, 463] }
+          - {
+              method: Debate,
+              acc: [83.03, 64.60, 51.06],
+              tok: [5758, 8705, 8888],
+            }
+          - {
+              method: DebateGPT,
+              acc: [74.42, 60.58, 55.83],
+              tok: [455, 1023, 433],
+            }
+          - { method: SFT, acc: [79.23, 75.60, 54.91], tok: [992, 1447, 1133] }
+          - { method: IMAD, acc: [85.20, 62.00, 58.53], tok: [644, 728, 563] }
+      - model: Qwen-2.5 7B Instruct
+        rows:
+          - { method: Single, acc: [86.07, 48.87, 62.51], tok: [577, 912, 805] }
+          - {
+              method: Debate,
+              acc: [91.37, 57.67, 67.58],
+              tok: [2320, 5368, 5458],
+            }
+          - {
+              method: DebateGPT,
+              acc: [89.43, 54.10, 63.93],
+              tok: [358, 636, 444],
+            }
+          - { method: SFT, acc: [86.37, 50.60, 67.14], tok: [957, 1162, 1063] }
+          - { method: IMAD, acc: [89.67, 52.87, 70.11], tok: [389, 660, 490] }
+      - model: Mistral-Nemo 12B Instruct
+        rows:
+          - { method: Single, acc: [75.40, 39.17, 58.70], tok: [332, 542, 352] }
+          - {
+              method: Debate,
+              acc: [61.03, 41.30, 62.76],
+              tok: [1697, 3857, 2059],
+            }
+          - {
+              method: DebateGPT,
+              acc: [71.70, 40.40, 59.07],
+              tok: [327, 465, 324],
+            }
+          - { method: SFT, acc: [74.37, 36.20, 63.66], tok: [1053, 1110, 1022] }
+          - { method: IMAD, acc: [80.00, 38.97, 63.73], tok: [358, 565, 367] }
 
-      <div class="uk-grid-small uk-child-width-1-3@m" uk-grid>
-        <div>
-          <img src="chart_acc.png">
-          <span class="uk-text-meta">Accuracy improvements on reasoning tasks</span>
-        </div>
-        <div>
-          <img src="chart_perf.png">
-          <span class="uk-text-meta">Performance vs. computational cost</span>
-        </div>
-        <div>
-          <img src="chart_tok.png">
-          <span class="uk-text-meta">Token efficiency comparison</span>
-        </div>
-      </div>
-
-      ### Key Findings
-
-      | **Method** | **GSM8K** | **MATH** | **HumanEval** | **Tokens Used** |
-      |------------|-----------|----------|---------------|----------------|
-      | Base Model | 78.2% | 42.1% | 71.3% | 1x |
-      | MAD (3 agents) | 85.7% | 51.3% | 78.9% | 3.2x |
-      | **Latent Agents** | **84.9%** | **50.8%** | **77.4%** | **1.1x** |
-
-      - **2-4x reduction** in inference cost compared to traditional MAD
-      - **Comparable performance** to explicit multi-agent systems
-      - **Generalizes** across different model families and scales
-      - **Interpretable** steering vectors reveal debate strategies
-  - title: Analysis
+  - title: Agent Subspaces
     text: |
-      ### Understanding Learned Debate Behaviors
+      Does internalization collapse the agents into undifferentiated reasoning, or do individual agents persist? To find out, we distill debates with three distinct personas (Chain-of-Thought, Self-Critique, and Program-of-Thought), then extract per-agent steering vectors via difference-in-means (Contrastive Activation Addition) and add them back at inference.
 
-      Our analysis reveals that steering vectors capture meaningful debate strategies:
+      Measuring ROUGE-L alignment between steered outputs and ground-truth agent responses, IMAD is consistently more steerable toward each agent than the base model (AUC 0.903 vs. 0.802, a 15.4% average improvement across agents). This indicates that internalization preserves the collaborative structure of debate as linearly separable agent subspaces rather than collapsing it.
+    figures:
+      - rouge_llama.png
+      - rouge-full.png
 
-      <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-        <div>
-          <img src="steering_horizontal.png">
-          <span class="uk-text-meta">Layer-wise analysis of steering vector effects</span>
-        </div>
-        <div>
-          <img src="vector_extraction.png">
-          <span class="uk-text-meta">Visualization of extracted debate patterns</span>
-        </div>
-      </div>
-
-      ### Interpretability Studies
-
-      Through probing experiments, we identify three key behaviors encoded in the steering vectors:
-
-      1. **Perspective-taking**: Early layers encode alternative viewpoints
-      2. **Critical evaluation**: Middle layers enhance error detection
-      3. **Consensus building**: Later layers promote solution synthesis
-
-      ### Generalization Across Models
-
-      <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-        <div>
-          <img src="rouge_llama.png">
-          <span class="uk-text-meta">Cross-model transfer on Llama family</span>
-        </div>
-        <div>
-          <img src="rouge-full.png">
-          <span class="uk-text-meta">Performance across different architectures</span>
-        </div>
-      </div>
-
-  - title: Citation
+  - title: Controlling Agent Behavior
     text: |
-      If you find our work helpful, please cite:
+      Agent subspaces are not only interpretable, they are controllable. We train IMAD on debates where one agent is deliberately malicious (either evil intent or hallucination), then suppress that agent with negative steering, comparing against an identically steered base model.
 
-      ```bibtex
-      @inproceedings{yi2026latent,
-        title = {Latent Agents: A Post-Training Procedure for Internalized Multi-Agent Debate},
-        booktitle = {Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (ACL)},
-        author = {Yi, John Seon Keun and Mueller, Aaron and Lee, Dokyun},
-        year = {2026},
-      }
-      ```
+      <div class="uk-text-center">
+        <img src="steering_horizontal.png">
+        <span class="uk-text-meta">Negative steering suppresses malicious traits; IMAD preserves GSM8K accuracy across the full steering range while the base model collapses at extreme coefficients.</span>
+      </div>
+
+      - For the evil trait, IMAD reaches complete suppression (trait score to 0) under strong negative steering, while the base model retains residual malicious behavior.
+      - Hallucination is more distributed and only partially suppressible, but both models suppress it monotonically as the coefficient decreases.
+      - Crucially, IMAD preserves task performance (GSM8K) across the full steering range, whereas the base model degrades and collapses at extreme coefficients.
+
+      Internalization makes harmful behaviors easier to localize and remove with less collateral damage, a practical benefit for LLM safety.
+
+  - title: Takeaways
+    text: |
+      - A two-stage pipeline, SFT followed by RL with a decaying format reward and length clipping, drives the shift from explicit debate to internal reasoning.
+      - Although trained only on arithmetic, IMAD generalizes to math, multi-domain knowledge, and diverse reasoning benchmarks.
+      - Internalization preserves debate as linearly separable agent subspaces that can be recovered through activation steering.
+      - These subspaces are controllable: malicious agents can be suppressed via negative steering with little damage to general task performance.
 
 projects: []

@@ -4,12 +4,10 @@ import { Helmet } from 'react-helmet';
 
 import Header from '@/components/header';
 import Overview from '@/components/overview';
-import Video from '@/components/video';
 import Body from '@/components/body';
 import Footer from '@/components/footer';
 import Citation from '@/components/citation';
 import SpeakerDeck from '@/components/speakerdeck';
-import Projects from '@/components/projects';
 import data from '../../template.yaml';
 
 import '@/js/styles.js';
@@ -120,15 +118,13 @@ class Template extends React.Component {
         />
         <div className="uk-container uk-container-small">
           <Overview
-            abstract={data.abstract}
             teaser={data.teaser}
-            description={data.description}
+            abstract={data.abstract}
+            tldr={data.tldr}
           />
-          <Video video={data.resources.video} />
           <SpeakerDeck dataId={data.speakerdeck} />
           <Body body={data.body} />
           <Citation bibtex={data.bibtex} />
-          <Projects projects={data.projects} />
         </div>
         <Footer />
       </div>

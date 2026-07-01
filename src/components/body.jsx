@@ -11,6 +11,9 @@ import 'highlight.js/styles/tokyo-night-dark.css';
 
 import 'img-comparison-slider';
 
+import Results from './results.jsx';
+import Figures from './figures.jsx';
+
 const renderer = new marked.Renderer();
 renderer.table = (header, body) => {
   return `<div class="uk-overflow-auto uk-width-1-1"><table class="uk-table uk-table-small uk-text-small uk-table-divider"> ${header} ${body} </table></div>`;
@@ -75,6 +78,8 @@ export default class Body extends React.Component {
               <Content title={subsection.title} />
               <Content image={subsection.image} />
               <Content text={subsection.text} />
+              {subsection.figures && <Figures figures={subsection.figures} />}
+              {subsection.tables && <Results tables={subsection.tables} />}
             </div>
           );
         })}
